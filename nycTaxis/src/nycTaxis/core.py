@@ -3,9 +3,9 @@ import numpy as np
 import os
 import glob
 
-from nycTaxis.helper import loadFile
-from nycTaxis.helper import condenseData
-from nycTaxis.helper import calculateAverage
+from nycTaxis.dataHandler import loadFile
+from nycTaxis.dataHandler import condenseData
+from nycTaxis.dataHandler import calculateAverage
 
 
 def averageMonthNaive(inputDataPath):
