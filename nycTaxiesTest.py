@@ -1,18 +1,30 @@
-import unittest
+import pytest
+from nycTaxis import dataHandler
+import pandas as pd
+import numpy as np
+import os
 
 
-class TestSum(unittest.TestCase):
+def test_numbers():
+	assert 1+1 == 2
 
-	def test_sum(self):
-		self.assertEqual(sum([1, 2, 3]), 6, "Should be 6")
+def notTest_saveAndLoad():
 
-	def test_sum_tuple(self):
-		self.assertNotEqual(sum((1, 2, 2)), 6, "Should be 6")
+	testDf = pd.DataFrame(np.random.randint(0,100,size=(100, 4)), columns=list('ABCD'))
+	dataHandler.saveDataFrame(testDf, './data.h5')
+	loadedDf = dataHandler.loadDataFrame('./data.h5')
+
+	os.remove('./data.h5')
+	assert testDf.equals(loadedDf)
+
+
+
+
+
+
+
 
 	#Test, der überprüft, dass der Average richtig berechnet wird
 
 	#Test, der überprüft, dass die Daten richtig geladen werden
 
-
-if __name__ == '__main__':
-	unittest.main()
