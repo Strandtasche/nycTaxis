@@ -5,7 +5,7 @@ import sys
 import glob
 import datetime
 
-from nycTaxis.dataHandler import loadFile
+from nycTaxis.dataHandler import loadFileRaw
 from nycTaxis.dataHandler import condenseData
 from nycTaxis.dataHandler import calculateRollingAverage
 
@@ -13,7 +13,7 @@ from nycTaxis.dataHandler import calculateRollingAverage
 
 def averageMonthNaive(inputDataPath):
 	"""Basic Case: load csv of a month and calculate average duration"""
-	data = loadFile(inputDataPath)
+	data = loadFileRaw(inputDataPath)
 	averageDuration = data['duration'].mean()
 	return averageDuration
 
@@ -22,15 +22,21 @@ def rollingAverageDate(inputDataFrame, dateString):
 	assert 'rollingAvg' in inputDataFrame.columns
 
 	_validate(dateString)
-	return inputDataFrame['rollingAvg'].loc[dateString].values[0]
+	if dateString not in inputDataFrame.index:
+		raise ValueError("given date is not part of dataset")
+	else:
+		return inputDataFrame['rollingAvg'].loc[dateString].values[0]
 
+def rollingAverageTotal(inputDataFrame):
+	"""returns the whole rolling average of a dataframe"""
+	assert 'rollingAvg' in inputDataFrame.columns
+	return inputDataFrame['rollingAvg']
 
 def _validate(date_text):
 	try:
 		datetime.datetime.strptime(date_text, '%Y-%m-%d')
 	except ValueError:
-		print("Incorrect data format, should be YYYY-MM-DD")
-		sys.exit(-1)
+		raise ValueError("Incorrect Date Format, should be YYYY-MM-DD")
 
 
 def main():
@@ -42,7 +48,7 @@ def main():
 
 	masterDataFrame = pd.DataFrame()
 	for file in fileList:
-		loadedData = loadFile(file)
+		loadedData = loadFileRaw(file)
 		reducedDataFrame = condenseData(loadedData)
 
 

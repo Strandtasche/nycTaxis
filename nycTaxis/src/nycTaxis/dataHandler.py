@@ -2,10 +2,13 @@ import sys
 import glob
 import pandas as pd
 import numpy as np
+import os
 
 
-def loadFile(path):
+def loadFileRaw(path):
 	"""load a single csv file"""
+
+	assert os.path.exists(path)
 	print("loading file {}...".format(path))
 	dataFrameTaxisFull = pd.read_csv(path)
 	print("... done!")
@@ -20,16 +23,27 @@ def loadFile(path):
 
 	return dataFrameTaxisFull
 
+def loadFile(path):
+	""" loads and condenses a single csv file"""
+
+	assert os.path.exists(path)
+	masterDataFrame = loadFileRaw(path)
+	reducedDataFrame = condenseData(masterDataFrame)
+
+	return reducedDataFrame
+
 
 def loadFolder(path):
-	"""load all csv files in a folder"""
+	"""load and condense all csv files in a folder"""
+
+	assert os.path.exists(path)
 	print("loading all files from Folder {}...".format(path))
 	# list of all csv files in Folder
 	fileList = sorted(glob.glob(path + '/*.csv'))
 
 	masterDataFrame = pd.DataFrame()
 	for file in fileList:
-		loadedData = loadFile(file)
+		loadedData = loadFileRaw(file)
 		reducedDataFrame = condenseData(loadedData)
 
 		masterDataFrame = masterDataFrame.append(reducedDataFrame)
@@ -40,12 +54,14 @@ def loadFolder(path):
 
 def condenseData(inputDataFrame):
 	"""aggregate Data and remove unnecessary information"""
+	assert 'tpep_pickup_datetime' in inputDataFrame.columns
+	assert 'duration' in inputDataFrame.columns
 	reducedDataFrame = inputDataFrame[['tpep_pickup_datetime', 'duration']].resample('d', on='tpep_pickup_datetime').sum()
 	countSeries = inputDataFrame[['tpep_pickup_datetime', 'duration']].resample('d', on='tpep_pickup_datetime').duration.count()
 	reducedDataFrame['count'] = countSeries
 
 	# remove days with no trips at all - necessary?
-	# Fehlerkorrektur mit falschen Timestamps in den Daten
+	# Fehlerkorrektur mit falschen Timestamps in den Daten TODO: checking in about error handling
 	reducedDataFrame.dropna(inplace=True)
 	reducedDataFrame = reducedDataFrame.loc[~(reducedDataFrame == 0).all(axis=1)]
 
@@ -53,7 +69,10 @@ def condenseData(inputDataFrame):
 
 
 def calculateRollingAverage(inputDataFrame):
+	"""calculates the rolling average an a condensed dataframe"""
 
+	assert 'duration' in inputDataFrame.columns
+	assert 'count' in inputDataFrame.columns
 	# win_type can change the kind of rolling average we are getting.
 	inputDataFrame['rollingAvg'] = inputDataFrame['duration'].rolling(window=45).sum() / inputDataFrame['count'].rolling(window=45).sum()
 
@@ -62,6 +81,20 @@ def calculateRollingAverage(inputDataFrame):
 
 	return inputDataFrame, inputDataFrame['rollingAvg']
 
+
+def appendDataFrame(inputDataFrame, path):
+	"""take a given dataframe and append another, extracted from a file"""
+
+	assert 'duration' in inputDataFrame.columns
+	assert 'count' in inputDataFrame.columns
+
+	appendingDataFrame = loadFile(path)
+	assert inputDataFrame.index == appendingDataFrame.index
+
+	returnDataFrame = inputDataFrame.append(appendingDataFrame)
+	returnDataFrame.sort_index(inplace=True)
+
+	return  returnDataFrame
 
 def saveDataFrame(inputDataFrame, saveLoc='./data.h5'):
 	"""take a given dataframe and save it as a h5 file"""
