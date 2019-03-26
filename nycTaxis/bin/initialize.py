@@ -13,7 +13,7 @@ dataPath = sys.argv[1]
 if os.path.isdir(dataPath):
 	dataFrameTotal = dataHandler.loadFolder(dataPath)
 elif os.path.isfile(dataPath):
-	dataFrameTotal = dataHandler.loadFileRaw(dataPath)
+	dataFrameTotal = dataHandler.loadFile(dataPath)
 else:
 	print("Something is wrong with the given Argument")
 	sys.exit(-1)
