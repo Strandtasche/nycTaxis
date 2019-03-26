@@ -17,11 +17,29 @@ def loadFileRaw(path):
 	dataFrameTaxisFull['tpep_pickup_datetime'] = pd.to_datetime(dataFrameTaxisFull['tpep_pickup_datetime'])
 	dataFrameTaxisFull['tpep_dropoff_datetime'] = pd.to_datetime(dataFrameTaxisFull['tpep_dropoff_datetime'])
 
+	#remove wrongly dated data points
+	dataFrameTaxisFull = filterDataFrame(dataFrameTaxisFull, os.path.basename(path))
+
 	dataFrameTaxisFull['duration'] = dataFrameTaxisFull['tpep_dropoff_datetime'] - dataFrameTaxisFull['tpep_pickup_datetime']
 	# convert datetime to int (seconds)
 	dataFrameTaxisFull['duration'] = dataFrameTaxisFull['duration']/np.timedelta64(1, 's')
 
 	return dataFrameTaxisFull
+
+
+def filterDataFrame(inputDataFrame, name):
+	"""removes datapoints outside of designated timeframe"""
+
+	assert 'tpep_pickup_datetime' in inputDataFrame.columns
+	assert len(name) == 27 and '.csv' in name
+	year = int(name[16:20])
+	month = int(name[21:23])
+
+	mask = (inputDataFrame['tpep_pickup_datetime'].dt.month == month) & (inputDataFrame['tpep_pickup_datetime'].dt.year == year)
+	filteredDataFrame = inputDataFrame.loc[mask]
+
+	return filteredDataFrame
+
 
 def loadFile(path):
 	""" loads and condenses a single csv file"""
@@ -60,10 +78,8 @@ def condenseData(inputDataFrame):
 	countSeries = inputDataFrame[['tpep_pickup_datetime', 'duration']].resample('d', on='tpep_pickup_datetime').duration.count()
 	reducedDataFrame['count'] = countSeries
 
-	# remove days with no trips at all - necessary?
-	# Fehlerkorrektur mit falschen Timestamps in den Daten TODO: checking in about error handling
-	reducedDataFrame.dropna(inplace=True)
-	reducedDataFrame = reducedDataFrame.loc[~(reducedDataFrame == 0).all(axis=1)]
+	# reducedDataFrame.dropna(inplace=True)
+	# reducedDataFrame = reducedDataFrame.loc[~(reducedDataFrame == 0).all(axis=1)]
 
 	return reducedDataFrame
 
@@ -76,7 +92,7 @@ def calculateRollingAverage(inputDataFrame):
 	# win_type can change the kind of rolling average we are getting.
 	inputDataFrame['rollingAvg'] = inputDataFrame['duration'].rolling(window=45).sum() / inputDataFrame['count'].rolling(window=45).sum()
 
-	# replace NaN Values with 0? except at the front? TODO: Decision
+	# replace NaN Values with 0? except at the start?
 	# inputDataFrame['rollingAvg'].fillna(0.0, inplace=True)
 
 	return inputDataFrame, inputDataFrame['rollingAvg']
@@ -88,13 +104,22 @@ def appendDataFrame(inputDataFrame, path):
 	assert 'duration' in inputDataFrame.columns
 	assert 'count' in inputDataFrame.columns
 
-	appendingDataFrame = loadFile(path)
-	assert inputDataFrame.index == appendingDataFrame.index
+	appendingDataFrame = pd.DataFrame()
+	if os.path.isdir(path):
+		appendingDataFrame = loadFolder(path)
+	elif os.path.isfile(path):
+		appendingDataFrame = loadFile(path)
+	assert appendingDataFrame.columns.isin(inputDataFrame.columns).all()
 
-	returnDataFrame = inputDataFrame.append(appendingDataFrame)
+	if appendingDataFrame.index.isin(inputDataFrame.index).any():
+		print("Warning, you're adding already existing indices to the dataFrame")
+
+	returnDataFrame = inputDataFrame.append(appendingDataFrame, sort=False)
 	returnDataFrame.sort_index(inplace=True)
+	returnDataFrame, _ = calculateRollingAverage(returnDataFrame)
 
-	return  returnDataFrame
+	return returnDataFrame
+
 
 def saveDataFrame(inputDataFrame, saveLoc='./data.h5'):
 	"""take a given dataframe and save it as a h5 file"""

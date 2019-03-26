@@ -25,7 +25,7 @@ def rollingAverageDate(inputDataFrame, dateString):
 	if dateString not in inputDataFrame.index:
 		raise ValueError("given date is not part of dataset")
 	else:
-		return inputDataFrame['rollingAvg'].loc[dateString].values[0]
+		return inputDataFrame['rollingAvg'].loc[dateString]
 
 def rollingAverageTotal(inputDataFrame):
 	"""returns the whole rolling average of a dataframe"""
