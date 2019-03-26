@@ -1,5 +1,6 @@
 import pytest
 from nycTaxis import dataHandler
+from nycTaxis import core
 import pandas as pd
 import numpy as np
 import os
@@ -17,6 +18,10 @@ def notTest_saveAndLoad():
 	os.remove('./data.h5')
 	assert testDf.equals(loadedDf)
 
+def test_AverageMonthNaive():
+
+	average = core.averageMonthNaive('/home/tobi/Projects/BlueYonder/testData/testData01.csv')
+	assert average == 60
 
 
 
