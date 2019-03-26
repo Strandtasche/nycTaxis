@@ -1,20 +1,36 @@
 import pandas as pd
 import numpy as np
 import os
+import sys
 import glob
+import datetime
 
 from nycTaxis.dataHandler import loadFile
 from nycTaxis.dataHandler import condenseData
-from nycTaxis.dataHandler import calculateAverage
+from nycTaxis.dataHandler import calculateRollingAverage
+
 
 
 def averageMonthNaive(inputDataPath):
-	# Basic Case: load csv of a month and calculate average
+	"""Basic Case: load csv of a month and calculate average duration"""
 	data = loadFile(inputDataPath)
 	averageDuration = data['duration'].mean()
 	return averageDuration
 
+def rollingAverageDate(inputDataFrame, dateString):
+	"""receives a dataframe and a date and returns the rolling average on that date"""
+	assert 'rollingAvg' in inputDataFrame.columns
 
+	_validate(dateString)
+	return inputDataFrame['rollingAvg'].loc[dateString].values[0]
+
+
+def _validate(date_text):
+	try:
+		datetime.datetime.strptime(date_text, '%Y-%m-%d')
+	except ValueError:
+		print("Incorrect data format, should be YYYY-MM-DD")
+		sys.exit(-1)
 
 
 def main():
