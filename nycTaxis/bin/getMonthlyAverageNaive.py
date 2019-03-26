@@ -6,7 +6,7 @@ import sys
 from nycTaxis import core
 
 
-assert len(sys.argv) == 2
+assert len(sys.argv) == 2, "Usage: 1. Argument - path to csv file"
 dataPath = sys.argv[1]
 
 
