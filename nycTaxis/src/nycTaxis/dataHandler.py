@@ -74,9 +74,12 @@ def condenseData(inputDataFrame):
 	"""aggregate Data and remove unnecessary information"""
 	assert 'tpep_pickup_datetime' in inputDataFrame.columns
 	assert 'duration' in inputDataFrame.columns
+
 	reducedDataFrame = inputDataFrame[['tpep_pickup_datetime', 'duration']].resample('d', on='tpep_pickup_datetime').sum()
 	countSeries = inputDataFrame[['tpep_pickup_datetime', 'duration']].resample('d', on='tpep_pickup_datetime').duration.count()
 	reducedDataFrame['count'] = countSeries
+
+	reducedDataFrame = fillMissingDates(reducedDataFrame)
 
 	# reducedDataFrame.dropna(inplace=True)
 	# reducedDataFrame = reducedDataFrame.loc[~(reducedDataFrame == 0).all(axis=1)]
@@ -91,7 +94,8 @@ def calculateRollingAverage(inputDataFrame):
 	assert 'count' in inputDataFrame.columns
 	# win_type can change the kind of rolling average we are getting.
 	inputDataFrame['rollingAvg'] = inputDataFrame['duration'].rolling(window=45).sum() / inputDataFrame['count'].rolling(window=45).sum()
-
+	mask = (inputDataFrame['count'].rolling(window=45).sum() == 0)
+	inputDataFrame['rollingAvg'] = inputDataFrame['rollingAvg'].where(~mask, other=0)
 	# replace NaN Values with 0? except at the start?
 	# inputDataFrame['rollingAvg'].fillna(0.0, inplace=True)
 
@@ -109,15 +113,31 @@ def appendDataFrame(inputDataFrame, path):
 		appendingDataFrame = loadFolder(path)
 	elif os.path.isfile(path):
 		appendingDataFrame = loadFile(path)
+	else:
+		sys.exit("given path does not contain correct File")
 	assert appendingDataFrame.columns.isin(inputDataFrame.columns).all()
 
 	if appendingDataFrame.index.isin(inputDataFrame.index).any():
+		# remove prior values and replace with new ones
 		print("Warning, you're adding already existing indices to the dataFrame")
+		inputDataFrame.update(appendingDataFrame)
+		inputDataFrame.drop_duplicates(inplace=True)
 
 	returnDataFrame = inputDataFrame.append(appendingDataFrame, sort=False)
+	returnDataFrame = fillMissingDates(returnDataFrame)
 	returnDataFrame.sort_index(inplace=True)
 	returnDataFrame, _ = calculateRollingAverage(returnDataFrame)
 
+	return returnDataFrame
+
+
+def fillMissingDates(inputDataFrame):
+	"""Fills missing days with 0 and nan"""
+	assert inputDataFrame.index.dtype == np.dtype('datetime64[ns]')
+	assert 'duration' in inputDataFrame.columns and 'count' in inputDataFrame.columns
+	r = pd.date_range(start=inputDataFrame.index.min(), end=inputDataFrame.index.max())
+	returnDataFrame = inputDataFrame.reindex(r)
+	returnDataFrame[['duration', 'count']] = returnDataFrame[['duration', 'count']].fillna(0.0)
 	return returnDataFrame
 
 
