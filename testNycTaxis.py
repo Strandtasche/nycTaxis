@@ -4,7 +4,7 @@ from nycTaxis import core
 import pandas as pd
 import numpy as np
 import os
-
+import itertools
 
 def test_numbers():
 	assert 1+1 == 2
@@ -67,12 +67,32 @@ def test_condenseData():
 	assert condensedDataFrame['count'].loc['2018-01-01'] == 12
 	assert condensedDataFrame['count'].loc['2018-01-02'] == 1
 
+	#simple rolling average test
 	condensedDataFrame_withAvg, _ = dataHandler.calculateRollingAverage(condensedDataFrame)
 	assert np.isnan(core.rollingAverageDate(condensedDataFrame_withAvg, '2018-01-01'))
 
+	condensedDataFrame_withAvg_appended = dataHandler.appendDataFrame(condensedDataFrame_withAvg,
+	                                        '/home/tobi/Projects/BlueYonder/testData/yellow_testdata_2018-03.csv')
+	assert condensedDataFrame_withAvg_appended.shape == (60, 3)
 
 
-#Test, der überprüft, dass der Average richtig berechnet wird
+def test_workflow():
+	dataPath = ['/home/tobi/Projects/BlueYonder/testData/yellow_testdata_2018-01.csv',
+	            '/home/tobi/Projects/BlueYonder/testData/yellow_testdata_2018-02.csv',
+				'/home/tobi/Projects/BlueYonder/testData/yellow_testdata_2018-03.csv']
 
-	#Test, der überprüft, dass die Daten richtig geladen werden
+	resultDataFrames = []
+
+	#test if adding months in different order changes result (it should not)
+	for subset in itertools.combinations(dataPath, len(dataPath)):
+		dataFrameTotal = pd.DataFrame(columns=['duration', 'count'])
+		for element in subset:
+			dataFrameTotal = dataHandler.appendDataFrame(dataFrameTotal, element)
+		resultDataFrames.append(dataFrameTotal)
+
+	for i in resultDataFrames:
+		assert resultDataFrames[0].equals(i)
+
+	assert resultDataFrames[0].shape[0] == 60  # 31 days in jan, 28 in Feb and 1 in March
+
 
