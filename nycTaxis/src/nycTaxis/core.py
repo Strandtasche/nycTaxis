@@ -10,12 +10,24 @@ from nycTaxis.dataHandler import condenseData
 from nycTaxis.dataHandler import calculateRollingAverage
 
 
-
 def averageMonthNaive(inputDataPath):
 	"""Basic Case: load csv of a month and calculate average duration"""
 	data = loadFileRaw(inputDataPath)
 	averageDuration = data['duration'].mean()
 	return averageDuration
+
+
+def averageMonth(inputDataFrame, year, month):
+	"""returns the average triplength of a month"""
+	assert 'duration' in inputDataFrame.columns
+	assert 'count' in inputDataFrame.columns
+
+	selectedDataFrame = inputDataFrame[(inputDataFrame.index.month == month) & (inputDataFrame.index.year == year)]
+	if selectedDataFrame['count'].sum() != 0:
+		return selectedDataFrame['duration'].sum() / selectedDataFrame['count'].sum()
+	else:
+		return 0
+
 
 def rollingAverageDate(inputDataFrame, dateString):
 	"""receives a dataframe and a date and returns the rolling average on that date"""
@@ -27,10 +39,12 @@ def rollingAverageDate(inputDataFrame, dateString):
 	else:
 		return inputDataFrame['rollingAvg'].loc[dateString]
 
+
 def rollingAverageTotal(inputDataFrame):
 	"""returns the whole rolling average of a dataframe"""
 	assert 'rollingAvg' in inputDataFrame.columns
 	return inputDataFrame['rollingAvg']
+
 
 def _validate(date_text):
 	try:
@@ -46,18 +60,19 @@ def main():
 
 	fileList = sorted(glob.glob(dataFolderPath + '/*.csv'))
 
-	masterDataFrame = pd.DataFrame()
-	for file in fileList:
-		loadedData = loadFileRaw(file)
-		reducedDataFrame = condenseData(loadedData)
-
-
-		masterDataFrame = masterDataFrame.append(reducedDataFrame)
-
-
-	print("files loaded")
-	rollingAverage = masterDataFrame['duration'].rolling(window=45).sum() / masterDataFrame['count'].rolling(window=45).sum()
-	print(rollingAverage)
+	print(fileList)
+	# masterDataFrame = pd.DataFrame()
+	# for file in fileList:
+	# 	loadedData = loadFileRaw(file)
+	# 	reducedDataFrame = condenseData(loadedData)
+	#
+	#
+	# 	masterDataFrame = masterDataFrame.append(reducedDataFrame)
+	#
+	#
+	# print("files loaded")
+	# rollingAverage = masterDataFrame['duration'].rolling(window=45).sum() / masterDataFrame['count'].rolling(window=45).sum()
+	# print(rollingAverage)
 
 	# print("done loading: len(durationList) = {}".format(len(durationList)))
 

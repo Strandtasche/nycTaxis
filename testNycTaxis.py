@@ -22,8 +22,11 @@ def notTest_saveAndLoad():
 
 def test_AverageMonthNaive():
 
-	average = core.averageMonthNaive('/home/tobi/Projects/BlueYonder/testData/yellow_testdata_2018-01.csv')
-	assert average == 60
+	averageNaive = core.averageMonthNaive('/home/tobi/Projects/BlueYonder/testData/yellow_testdata_2018-01.csv')
+	dataFrame = dataHandler.loadFile('/home/tobi/Projects/BlueYonder/testData/yellow_testdata_2018-01.csv')
+	averageNormal = core.averageMonth(dataFrame, 2018, 1)
+	assert averageNaive == 60
+	assert averageNaive == averageNormal
 
 
 def test_validateBad():
@@ -90,9 +93,11 @@ def test_workflow():
 			dataFrameTotal = dataHandler.appendDataFrame(dataFrameTotal, element)
 		resultDataFrames.append(dataFrameTotal)
 
+	exampleDataFrame = resultDataFrames[0]
 	for i in resultDataFrames:
-		assert resultDataFrames[0].equals(i)
+		assert exampleDataFrame.equals(i)
 
-	assert resultDataFrames[0].shape[0] == 60  # 31 days in jan, 28 in Feb and 1 in March
+	assert exampleDataFrame.shape[0] == 60  # 31 days in jan, 28 in Feb and 1 in March
+	assert exampleDataFrame['rollingAvg'].iloc[-1] == 60  # every single datapoint in the testdata has duration 60 seconds
 
-
+	assert exampleDataFrame['rollingAvg'].equals(core.rollingAverageTotal(exampleDataFrame))
